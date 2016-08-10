@@ -1,5 +1,6 @@
 #include <linux/init.h>
 #include <linux/module.h>
+#include <linux/ctype.h>
 
 #include <linux/fs.h>
 #include <linux/miscdevice.h>
@@ -7,6 +8,7 @@
 #include <linux/slab.h>
 
 #include <asm/uaccess.h>
+#include "echo_ioctls.h"
 
 MODULE_LICENSE("Dual BSD/GPL");
 
@@ -65,10 +67,61 @@ static ssize_t echo_write(struct file *f, const char __user *buf, size_t size,
 	return size;
 }
 
+static long echo_clear(void) {
+	if (echo_data.string) {
+		kfree(echo_data.string);
+		echo_data.string = NULL;
+	}
+	echo_data.length = 0;
+	return 0;
+}
+
+static long echo_upper(void) {
+	if (echo_data.string) {
+		int i;
+		for (i = 0; i < echo_data.length; i++) {
+			echo_data.string[i] = toupper(echo_data.string[i]);
+		}
+	}
+	return 0;
+}
+
+static long echo_lower(void) {
+	if (echo_data.string) {
+		int i;
+		for (i = 0; i < echo_data.length; i++) {
+			echo_data.string[i] = tolower(echo_data.string[i]);
+		}
+	}
+	return 0;
+}
+
+static long ioctl_ops(struct file *filp, unsigned int cmd,
+		unsigned long arg) {
+	long retval = 0;
+	switch (cmd) {
+		case ECHO_IOC_CLEAR:
+			retval = echo_clear();
+			break;
+		case ECHO_IOC_LOWERCASE:
+			retval = echo_lower();
+			break;
+		case ECHO_IOC_UPPERCASE:
+			retval = echo_upper();
+			break;
+		case ECHO_IOC_REVERSE:
+			break;
+		default:
+			return -ENOTTY;
+	}
+	return retval;
+}
+
 static struct file_operations fops = {
 	.owner = THIS_MODULE,
 	.read = echo_read,
 	.write = echo_write,
+	.unlocked_ioctl = &ioctl_ops,
 };
 
 static struct miscdevice miscdev = {
