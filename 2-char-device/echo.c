@@ -99,6 +99,7 @@ static long echo_lower(void) {
 static long ioctl_ops(struct file *filp, unsigned int cmd,
 		unsigned long arg) {
 	long retval = 0;
+	printk(KERN_DEBUG "command is 0x%x", cmd);
 	switch (cmd) {
 		case ECHO_IOC_CLEAR:
 			retval = echo_clear();
@@ -112,6 +113,7 @@ static long ioctl_ops(struct file *filp, unsigned int cmd,
 		case ECHO_IOC_REVERSE:
 			break;
 		default:
+			printk(KERN_ERR "invalid command 0x%x", cmd);
 			return -ENOTTY;
 	}
 	return retval;
